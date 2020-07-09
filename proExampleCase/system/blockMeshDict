@@ -1,0 +1,88 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1806                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+scale   1.0;
+
+x0 0;
+x1 0.1;
+y0 0;
+y1 0.01;
+z0 0;
+z1 0.02;
+
+vertices
+(
+    ($x0 $y0 $z0)
+    ($x1 $y0 $z0)
+    ($x1 $y1 $z0)
+    ($x0 $y1 $z0)
+
+    ($x0 $y0 $z1)
+    ($x1 $y0 $z1)
+    ($x1 $y1 $z1)
+    ($x0 $y1 $z1)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (100 10 100) simpleGrading (1 1 10)
+);
+
+edges
+(
+    arc 0 1 ( #calc"$x0+0.5*$x1" $y0 #calc"$z0 + 0.4*$z1") 
+    arc 2 3 ( #calc"$x0+0.5*$x1" $y1 #calc"$z0 + 0.4*$z1") 
+);
+
+boundary
+(
+    INLET
+    {
+        type patch;
+        faces
+        (
+            (0 3 4 7)
+        );
+    }
+    OUTLET
+    {
+        type patch;
+        faces
+        (
+            (1 2 5 6)
+        );
+    }
+    MEMBRANE    
+    {
+        type patch;
+        faces
+        (
+            (0 1 2 3)
+        );
+    }
+    SYM
+    {
+        type symmetry;
+        faces
+        (
+            (0 1 4 5)
+            (2 3 6 7)
+            (4 5 6 7)
+        );
+    }
+);
+
+// ************************************************************************* //

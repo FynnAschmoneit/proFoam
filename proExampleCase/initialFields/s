@@ -1,0 +1,74 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v1806                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      s;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+//#include "../simParas"
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 1.0;
+
+boundaryField
+{
+    MEMBRANE
+    {
+    	type 	codedFixedValue;
+    	value 	uniform 1.0;
+    	name 	membrCtr;
+
+    	code
+    	#{
+    	        scalar p 		= 7.5;	 	// hydr pres [bar]
+    	        scalar pi_bulk 		= 15.0;	 	// osm pres [bar]
+
+    	    	scalar A_LMH_BAR	= 5.3;		// [LMH BAR]
+    		scalar B_LMH 		= 2.0;		// [LMH] 
+    		scalar D		= 1.45e-9;
+
+    		scalar A_		= A_LMH_BAR/(3.6e6);    // [m/(s bar)]
+    		scalar B_		= B_LMH/(3.6e6);	// [m/s]
+	    
+    	    	const vectorField u 	= patch().lookupPatchField<volVectorField, vector>("U");
+    	    	const fvPatchField s	= patch().lookupPatchField<volScalarField, scalar>("s");
+    		const scalarField pi_int = pi_bulk*s.patchInternalField();
+    		const vectorField fNs 	= patch().nf();
+    		const scalarField jw 	= u & -fNs;
+    		const scalarField d 	= 1.0/patch().deltaCoeffs();	// distance to cell centre
+    		const scalarField nom	= pi_int - B_/D*( cmptMultiply(jw,d)/A_ +d*p) ;
+    		const scalarField denom	= (1.0 + cmptMultiply(jw,d)/D);
+
+    		const scalarField s_out_1 = min( 0.9*s + 0.1*cmptDivide(nom,denom)/pi_bulk, 1.0 );
+    		scalarField s_out( max( s_out_1, 0.0) );
+    		operator==(s_out);
+    	#};
+    }
+    INLET
+    {
+        type            fixedValue;
+        value           uniform 1.0;
+    }
+    OUTLET
+    {
+        type            zeroGradient;
+    }
+    SYM
+    {
+        type            symmetry;
+    }
+}
+
+
+// ************************************************************************* //

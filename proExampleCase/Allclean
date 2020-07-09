@@ -1,0 +1,9 @@
+rm -rf 0.* 1* 2* 3* 4* 5* 6* 7* 8* 9*
+rm -rf 0/*
+rm -rf dynamicCode
+rm -rf *.OpenFOAM
+rm -rf *log
+rm -rf postProcessing
+rm -rf processor*
+rm -rf *.out
+rm -rf *.err

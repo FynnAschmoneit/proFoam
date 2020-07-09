@@ -1,0 +1,119 @@
+/*--------------------------------*- C++ -*----------------------------------* \
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.3.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    location    "0";
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+   MEMBRANE
+    {
+	type 	codedFixedValue;
+	value	uniform (0 0 0);
+	name 	membrVel;
+
+	codeInclude
+    	    #{
+#include "fvCFD.H"
+    	    #};
+	    
+    	    codeOptions
+    	    #{
+	    -I$(LIB_SRC)/finiteVolume/lnInclude		\
+  	    -I$(LIB_SRC)/meshTools/lnInclude
+    	    #};
+	    
+    	    codeLibs
+    	    #{
+    		-lmeshTools			\
+      		-lfiniteVolume
+    	    #};
+
+	code
+	#{
+	        scalar p 		= 7.5;	 	// hydr pres [bar]
+	        scalar pi_bulk 		= 15.0;	 	// osm pres [bar]
+		
+		scalar A_LMH_BAR	= 5.3;		// [LMH BAR]
+		scalar B_LMH 		= 2.0;		// [LMH] 2.0
+		scalar S		= 6e-4;
+		scalar D		= 1.45e-9;
+
+		scalar A_		= A_LMH_BAR/(3.6e6);    // [m/(s bar)]
+		scalar B_		= B_LMH/(3.6e6);	// [m/s]
+
+		const scalarField pi 	= pi_bulk * patch().lookupPatchField<volScalarField, scalar>("s"); // [bar]
+		const vectorField fNs 	= patch().nf();
+		
+		vectorField u(fNs);
+		scalar t =this->db().time().value();
+		if (t<100){
+		    forAll(u,i)
+		    {
+			u[i] = vector( -1e-6*fNs[i] );
+		    }
+		}
+		else if (B_ > 0.0){
+		// ---------newton procedure---------------
+		    scalar f,df,y;
+		    forAll(u,i)
+		    {
+			scalar iter = 0;
+			scalar u_n = max( A_*(pi[i] -p), 0.0); // initial guess: no ICP --> solution u_n is smaller
+			scalar u_o = 0.0;
+			
+			while( fabs(u_n-u_o) > 1e-10 ){
+			    u_o 	= u_n;
+			    y 	= B_/u_o*(exp(u_o*S/D));
+			    f 	= u_o - A_*(pi[i]/(1.0 +y -B_/u_o) -p);
+			    df 	= 1.0+A_*pi[i]*(y*(S/D - 1.0/u_o) +B_/(u_o*u_o))/( (1.0 +y -B_/u_o)*(1.0 +y -B_/u_o) );
+			    u_n = u_o - f/df;
+			    iter++;
+			}
+//			u[i] = vector( -max( u_n, 1e-10 )*fNs[i] );
+			u[i] = vector( -u_n*fNs[i] );
+		    }
+		} else {
+		// ----------- active layer permeation -----------------    
+		    forAll(u, i) //equivalent to for (int i=0; patch.size()<i; i++)
+		    {			
+			u[i] = vector( -max( A_*(pi[i] - p), 1e-15 )*fNs[i] );
+			// if(i==20) Info << "jw = " << max( A_*(pi[i] - p), 1e-15 ) << endl;
+		    }
+		}
+		operator==(u);
+	 #};
+   }
+
+   INLET
+    {
+	type 		fixedValue;
+	value		uniform (0.001 0 0);
+    }
+    
+    OUTLET
+    {
+	type		zeroGradient;
+    }    
+    SYM
+    {
+        type            symmetry;
+    }    
+}
+
+// ************************************************************************* //

@@ -1,0 +1,68 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  4.x                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     simpleFoam;
+
+startFrom       latestTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         6000;
+
+deltaT          1;
+
+writeControl    timeStep;
+
+writeInterval   10;
+
+purgeWrite      3;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable true;
+
+
+functions{
+    #includeFunc patchAverage(name=OUTLET,s);
+    #includeFunc patchAverage(name=INLET,p);
+    #includeFunc flowRatePatch(name=INLET);
+    #includeFunc flowRatePatch(name=OUTLET);
+    #includeFunc flowRatePatch(name=MEMBRANE);
+    #includeFunc residuals;
+    #includeFunc grad(s);
+    #includeFunc mag(grad(s));
+    #includeFunc patchAverage(name=MEMBRANE,mag(grad(s))) 
+    #includeFunc mag(U);
+    #includeFunc patchAverage(name=MEMBRANE,sh)
+}
+
+
+
+
+
+
+// ************************************************************************* //
